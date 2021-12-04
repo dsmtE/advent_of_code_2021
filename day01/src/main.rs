@@ -1,4 +1,4 @@
-use std::{fs, env, process};
+use std::{fs, env, process, collections::VecDeque};
 
 fn read_input(mut args: env::Args) -> Result<String, &'static str> {
     args.next();
@@ -31,4 +31,20 @@ fn main() {
     }).0;
 
     println!("result : {}", result);
+
+    let result = input.lines().map(|line| line.parse().unwrap()).fold(
+        (VecDeque::<u16>::with_capacity(3), 0u16, 0u16),
+        |(mut window, sum, mut count), new| {
+            let mut new_sum = sum + new;
+            if window.len() == 3 {
+                new_sum -= window[0];
+                if new_sum > sum { count += 1; }
+                window.pop_front();
+            }
+            window.push_back(new);
+            (window, new_sum, count)
+        },
+    ).2;
+
+    println!("result bis : {}", result);
 }
