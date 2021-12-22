@@ -12,9 +12,8 @@ fn main() {
             map
         });
 
-    (0..days).for_each(|_| {
-        map.rotate_left(1); // spawn new automaticaly by rotating
-        map[6] += map[8]; // reset older 0 to 6
+    (0..days).for_each(|day| {
+        map[(day + 7) % 9] += map[day % 9]
     });
 
     println!("final day : {:?}", map);
