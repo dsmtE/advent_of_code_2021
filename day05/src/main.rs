@@ -46,4 +46,33 @@ fn main() {
     });
 
     println!("result : {}", overlaps);
+
+    let mut map = vec![0u8; width * height];
+    let mut overlaps = 0;
+
+    coordinates.iter().for_each(|&(x, y, xx, yy)| {
+        let mut mark = |x, y| {
+            if map[(x + y * width) as usize] == 1 {
+                // increment overlap 
+                overlaps += 1;
+            }
+            // update board
+            map[(x + y * width) as usize] += 1;
+        };
+
+        // horizontal ,vertical or diagonal line
+        if x == xx {
+            (y.min(yy)..=y.max(yy)).for_each(|i| mark(x, i));
+        } else if y == yy {
+            (x.min(xx)..=x.max(xx)).for_each(|i| mark(i, y));
+        } else {
+            // println!("{},{} -> {},{} : dir: {}_{}", x, y, xx, yy, if xx>x {1} else {-1}, if yy>y {1} else {-1});
+            
+            let x_forward = xx>x;
+            let y_forward = yy>y;
+            (0..=(x.max(xx)-x.min(xx))).for_each(|i| mark(if x_forward {x+i} else {x-i}, if y_forward {y+i} else {y-i}));
+        }
+    });
+
+    println!("result bis : {}", overlaps);
 }
