@@ -10,4 +10,14 @@ fn main() {
         .unwrap();
 
     println!("min fuel : {}", min_fuel);
+
+    let min_fuel = (0..=*positions.iter().max().unwrap()).map(|t| {
+        positions.iter().map(|n| {
+                let d = (n - t).abs();
+                (d * (d + 1)) / 2
+            }).sum::<i32>()
+    }).min().unwrap();
+
+    println!("min fuel : {}", min_fuel);
+
 }
