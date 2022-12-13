@@ -2,6 +2,8 @@ use core::fmt;
 use std::{collections::VecDeque};
 use std::borrow::BorrowMut;
 
+use advent_of_code::vec_to_string;
+
 use nom::{
     IResult,
     bytes::complete::tag,
@@ -14,19 +16,6 @@ use nom::{
 
 const INPUT: &str = advent_of_code::get_input!();
 
-fn vec_to_string<T: fmt::Display>(vec: &Vec<T>, sep: &str) -> String {
-    let mut result = String::new();
-    result.push('[');
-    let len = vec.len();
-    if len > 0 {
-        for item in &vec[..len-1] {
-            result.push_str(&format!("{}{}", item, sep));
-        }
-        result.push_str(&format!("{}", vec.last().unwrap()));
-    }
-    result.push(']');
-    result
-}
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 enum Operator { Mul, Add }
