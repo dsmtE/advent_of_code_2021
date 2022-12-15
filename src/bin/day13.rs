@@ -13,7 +13,7 @@ use nom::{
 
 const INPUT: &str = advent_of_code::get_input!();
 
-use advent_of_code::vec_to_string;
+use advent_of_code::iterator_to_string;
 
 #[derive(Clone, PartialEq, Eq)]
 enum Packet {
@@ -42,7 +42,7 @@ impl std::fmt::Display for Packet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Packet::Value(value) => write!(f, "{}", value),
-            Packet::List(list) => write!(f, "{}", vec_to_string(list, ","))
+            Packet::List(list) => write!(f, "{}", iterator_to_string(list, ","))
         }
     }
 }

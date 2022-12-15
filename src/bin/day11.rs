@@ -2,7 +2,7 @@ use core::fmt;
 use std::{collections::VecDeque};
 use std::borrow::BorrowMut;
 
-use advent_of_code::vec_to_string;
+use advent_of_code::iterator_to_string;
 
 use nom::{
     IResult,
@@ -63,7 +63,7 @@ impl fmt::Display for MonkeySetup {
                 target_if_true: {},
                 target_if_false: {}
             }}", 
-            vec_to_string(&self.starting_items, ", "),
+            iterator_to_string(&self.starting_items, ", "),
             self.operation,
             self.divider_test,
             self.target_if_true,
@@ -104,7 +104,7 @@ impl std::fmt::Debug for Monkey {
                 target_if_true: {},
                 target_if_false: {}
             }}",
-            vec_to_string(&self.items.iter().collect(), ", "),
+            iterator_to_string(&self.items, ", "),
             self.inspection_count,
             self.divider_test,
             self.target_if_true,
@@ -260,7 +260,7 @@ fn solve02(monkeys_setup_list: &Vec<MonkeySetup>) -> usize {
 
 fn main() {
     let (_, monkeys_setup_list) = monkeys(INPUT).unwrap();
-        println!("{}", vec_to_string(&monkeys_setup_list, ", \n"));
+        println!("{}", iterator_to_string(&monkeys_setup_list, ", \n"));
 
         println!("result01: {}", solve01(&monkeys_setup_list));
         println!("result02: {}", solve02(&monkeys_setup_list));
@@ -301,7 +301,7 @@ Monkey 3:
     #[test]
     fn simple_case() {
         let (_, monkeys_setup_list) = monkeys(TEST_INPUT).unwrap();
-        // println!("{}", vec_to_string(&monkeys_setup_List, ", \n"));
+        println!("{}", iterator_to_string(&monkeys_setup_list, ", \n"));
 
         assert_eq!(solve01(&monkeys_setup_list), 10605);
 
