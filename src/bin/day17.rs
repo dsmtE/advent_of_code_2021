@@ -1,45 +1,83 @@
-use std::{fmt::write, collections::HashSet};
+use std::collections::HashSet;
 
-use nom::{multi::{many1, separated_list1}, IResult, combinator::map, branch::alt, character::complete::{self, line_ending}, sequence::pair};
+use nom::{
+    branch::alt,
+    bytes::complete::take_while,
+    character::complete::{self, line_ending, one_of},
+    combinator::{map, recognize},
+    multi::{many1, separated_list1},
+    sequence::pair,
+    IResult,
+};
 
 use advent_of_code::iterator_to_string;
-use advent_of_code::mapped_iterator_to_string;
 
 const INPUT: &str = advent_of_code::get_input!();
 
 const ROCKS: &str = "####\n\n.#.\n###\n.#.\n\n..#\n..#\n###\n\n#\n#\n#\n#\n\n##\n##";
 
-type Coord = (i64, i64);
-struct RockFormation(Vec<Vec<bool>>);
+type Pos = (u8, usize);
+
+struct RockFormation {
+    shape: Vec<u8>,
+    width: u8,
+    height: usize,
+}
 
 impl RockFormation {
-    fn height(&self) -> usize { self.0.len() }
-    fn width(&self) -> usize { self.0.iter().map(|row| row.len()).max().unwrap()}
-
-    fn collide_in_field(&self, field: &HashSet<Coord>, rock_position: Coord) -> bool {
-
-        // chec if it in the bound of the field
-        if rock_position.1 < 0 || rock_position.0 < 0 || rock_position.0 + self.width() as i64 - 1 >= 7  {
-            return true;
-        }
-
-        let height = self.height();
-        self.0.iter().enumerate().any(|(j, row)| {
-            row.iter().enumerate().any(|(i, &b)| {
-                b && field.contains(&(rock_position.0 + i as i64, rock_position.1 + (height-1-j) as i64))
+    fn new(input: &str) -> Self {
+        let shape = input
+            .lines()
+            .map(|line| {
+                line.chars()
+                    .fold(0u8, |acc, c| (acc << 1) | if c == '#' { 1 } else { 0 })
             })
-        })
+            .collect::<Vec<u8>>();
+
+        let width = input.lines().map(|line| line.len()).max().unwrap() as u8;
+        let height = input.lines().count();
+        Self {
+            shape,
+            width,
+            height,
+        }
     }
+
+    fn collide(&self, pos: Pos, field: &RocksField) -> bool {
+        for (dy, row) in self.shape.iter().enumerate() {
+            let shift = 7 - self.width - pos.0;
+            if let Some(v) = field.rocks.get(pos.1 + (self.height-1) - dy) {
+                if v & (row << shift) != 0 {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+}
+
+fn parse_rocks(input: &str) -> IResult<&str, Vec<RockFormation>> {
+    separated_list1(
+        pair(line_ending, line_ending),
+        map(
+            recognize(separated_list1(line_ending, many1(one_of("#.")))),
+            |str| RockFormation::new(str),
+        ),
+    )(input)
 }
 
 impl std::fmt::Display for RockFormation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", 
-            mapped_iterator_to_string(
-                &self.0, "\n",
-                |row: &Vec<bool>| mapped_iterator_to_string(row, "", |&b| if b { '#' } else { '.' })
-            ),
-        )
+        for row in self.shape.iter() {
+            for i in 0..self.width {
+                write!(
+                    f, "{}",
+                    if row & (1 << (self.width - 1 - i)) != 0 { '#' } else { '.' }
+                )?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
     }
 }
 
@@ -50,161 +88,144 @@ enum Move {
 
 impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Move::Left => "<",
-            Move::Right => ">",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Move::Left => "<",
+                Move::Right => ">",
+            }
+        )
     }
 }
 
 fn parse_moves(input: &str) -> IResult<&str, Vec<Move>> {
-    many1(
-        alt((
-            map(complete::char('>'), |_| Move::Right),
-            map(complete::char('<'), |_| Move::Left),
-        ))
-    )(input)
-}
-
-fn parse_rocks(input: &str) -> IResult<&str, Vec<RockFormation>> {
-    separated_list1(
-        pair(line_ending, line_ending),
-        map(separated_list1(
-            line_ending,
-            many1(
-                alt((
-                    map(complete::char('#'), |_| true),
-                    map(complete::char('.'), |_| false),
-                ))
-            )
-        ),
-        |rock_formation| RockFormation(rock_formation) )
-    )(input)
+    many1(alt((
+        map(complete::char('>'), |_| Move::Right),
+        map(complete::char('<'), |_| Move::Left),
+    )))(input)
 }
 
 
-struct RocksField{
-    positions: HashSet<Coord>,
-    check_offset: usize,
+struct RocksField {
+    rocks: Vec<u8>,
 }
+
+pub fn shift(a: u8, b: i8) -> u8 {
+    if b > 0 { a << b } else { a >> b.abs() }
+}
+
 impl RocksField {
-
-    fn max_height(&self) -> i64 {
-        self.positions.iter().map(|(_, y)| *y+1).max().unwrap_or(0)
-    }
-
-    fn add_rock(&mut self, rock: &RockFormation, rock_position: Coord) {
-        let height = rock.height();
-        rock.0.iter().enumerate().for_each(|(j, row)| {
-            row.iter().enumerate().for_each(|(i, &b)| {
-                if b {
-                    self.positions.insert((rock_position.0 + i as i64, rock_position.1 + (height-1-j) as i64));
-                }
-            })
-        });
-    }
-
-    fn collide(&self, rock: &RockFormation, rock_position: Coord) -> bool {
-        // check boundry
-        if rock_position.1 < 0 || rock_position.0 < 0 || rock_position.0 + rock.width() as i64 - 1 >= 7  {
-            return true;
+    fn new() -> Self {
+        Self {
+            rocks: vec![],
         }
-
-        let height = rock.height();
-        rock.0.iter().enumerate().any(|(j, row)| {
-            row.iter().enumerate().any(|(i, &b)| {
-                b && self.positions.contains(&(rock_position.0 + i as i64, rock_position.1 + (height-1-j) as i64 - self.check_offset as i64))
-            })
-        })
     }
 
-    fn display(&self, rock: &RockFormation, rock_position: Coord) {
-        let max_y = std::cmp::max(
-            self.positions.iter().map(|(_, y)| *y).max().unwrap_or(0),
-            rock_position.1 + rock.height() as i64 - 1
-        );
+    fn height(&self) -> usize { self.rocks.len() }
 
-        println!("rock_position: ({},{})", rock_position.0, rock_position.1);
-        for y in (0..=max_y).rev() {
-            print!("|");
-            (0..=6).map(|x| {
-                if self.positions.contains(&(x, y)) {
-                    '#'
-                } else if rock_position.1 <= y && y < rock_position.1 + rock.height() as i64
-                    && rock_position.0 <= x && x < rock_position.0 + rock.width() as i64
-                    && rock.0[((rock.height() as i64 - 1) - (y - rock_position.1)) as usize][(x - rock_position.0) as usize]
-                {
-                    '@'
-                } else {
-                    '.'
-                }
-            }).for_each(|c| print!("{}", c));
-            println!("|");
-        }
-        println!("+-------+");
-    }
-}
-
-
-fn falling_rocks_height(rocks_formations: &[RockFormation], move_instructions: &[Move], rock_limit: usize, verbose: bool) -> i64 {
-    let mut rocks = rocks_formations.iter().cycle();
-        let mut moves = move_instructions.iter().cycle();
-
-        let mut rocks_field = RocksField { positions: HashSet::new(), check_offset: 0 };
-
-        let mut rock_placed = 0;
-
-        while rock_placed < rock_limit {
-            let current_rock_formation = rocks.next().unwrap();
-
-            // use bottom left corner as rock position
-            let mut current_rock_position: Coord = (2, rocks_field.max_height() + 3);
-            
-            if verbose { println!("New rock formation"); }
-
-            loop {
-
-                if verbose { rocks_field.display(current_rock_formation, current_rock_position); }
-                // wind
-                let next_move = moves.next().unwrap();
-                let desired_next_position: Coord = match next_move {
-                    Move::Left => (current_rock_position.0 - 1, current_rock_position.1),
-                    Move::Right => (current_rock_position.0 + 1, current_rock_position.1),
-                };
-
-                if !rocks_field.collide(current_rock_formation, desired_next_position) {
-                    current_rock_position = desired_next_position;
-                }
-
-                if verbose{
-                    println!("Wind move {}", match next_move {
-                        Move::Left => "<-",
-                        Move::Right => "->",
-                    });
-                    rocks_field.display(current_rock_formation, current_rock_position);
-                }
-
-                // downward
-                let desired_next_position: Coord = (current_rock_position.0, current_rock_position.1 - 1);
-                if !rocks_field.collide(current_rock_formation, desired_next_position) {
-                    current_rock_position = desired_next_position;
-                } else {
-                    rocks_field.add_rock(current_rock_formation, current_rock_position);
-                    rock_placed += 1;
-                    if verbose {
-                        println!("rock_placed: {}", rock_placed);
-                        rocks_field.display(current_rock_formation, current_rock_position);
-                    }
-                    break;
-                }
+    fn add(&mut self, rock: &RockFormation, rock_position: Pos) {
+        for (dy, row) in rock.shape.iter().enumerate().rev() {
+            let shift = 7 - rock.width - rock_position.0;
+            if let Some(v) = self.rocks.get_mut(rock_position.1 + (rock.height-1) - dy) {
+                *v |= row << shift;
+            } else {
+                self.rocks.push(row << shift);
             }
         }
-        rocks_field.max_height()
+    }
+
+    fn display(&self, rock: &RockFormation, rock_position: Pos) {
+
+        let max_y = std::cmp::max(
+            self.height(),
+            rock_position.1 + rock.height - 1
+        );
+
+        println!("rock pos: ({}, {})", rock_position.0, rock_position.1);
+
+        for y in (0..=max_y).rev() {
+            print!("|");
+            for x in 0..=6 {
+                print!(
+                    "{}",
+                    if self.rocks.get(y).unwrap_or(&0u8) & (1 << (6 - x)) != 0 {
+                        '#'
+                    } else if rock_position.1 <= y && y < rock_position.1 + rock.height
+                        && rock_position.0 <= x && x < rock_position.0 + rock.width
+                        && rock.shape[rock_position.1 + (rock.height - 1) - y] & shift(1,rock_position.0 as i8 + (rock.width as i8 - 1) - x as i8) != 0 {
+                        '@'
+                    } else {
+                        '.'
+                    }
+                );
+            }
+            println!("|");
+        }
+        println!("+-------+\n");
+    }
 }
+
+
+fn falling_rocks_height(rocks_formations: &[RockFormation], move_instructions: &[Move], rock_limit: usize, verbose: bool) -> usize {
+
+    let mut move_index = 0;
+    let mut field = RocksField::new();
+
+    // todo: add rocks
+
+    for i in 0..rock_limit {
+        println!("Rock {}", i);
+        let rock_index: usize = i % rocks_formations.len();
+        let rock = &rocks_formations[rock_index];
+
+        // use bottom left corner as rock position
+        let mut rock_position: Pos = (2u8, field.height() + 3);
+
+        if verbose { println!("New rock"); }
+
+        loop {
+
+            let move_instruction = &move_instructions[move_index];
+            let move_shift: i8 = match move_instruction {
+                Move::Left => -1,
+                Move::Right => 1,
+            };
+
+            if verbose {
+                println!("Move {} ({})", move_instruction, move_index);
+                field.display(rock, rock_position);
+            }
+            move_index = (move_index + 1) % move_instructions.len();
+            
+            // move only if rock isn't on the edge of the field
+            if (rock_position.0 > 0 && move_shift == -1) || (rock_position.0 + (rock.width-1) < 6 && move_shift == 1) {
+                // do not move if rock collides with another rock in the field
+                let new_x_pos = (rock_position.0 as i8 + move_shift) as u8;
+                if !rock.collide((new_x_pos, rock_position.1), &field) {
+                    rock_position.0 = new_x_pos;
+                }
+            }
+
+            if verbose {field.display(rock, rock_position);}
+
+            // do not move down if rock collides with another rock in the field or if it's on the bottom of the field
+            if rock_position.1 > 0 && !rock.collide((rock_position.0, rock_position.1 - 1) , &field) {
+                rock_position.1 -= 1;
+            } else {
+                break;
+            }
+        }
+
+        field.add(rock, (rock_position.0, rock_position.1));
+    }
+
+    field.height()
+}
+
 fn main() {
     let (_, move_instructions) = parse_moves(INPUT).unwrap();
     let (_, rocks_formations) = parse_rocks(ROCKS).unwrap();
-
 
     let result = falling_rocks_height(&rocks_formations, &move_instructions, 2022, false);
 
@@ -225,7 +246,7 @@ mod tests {
         println!("{}", iterator_to_string(&move_instructions, ""));
 
         let (_, rocks_formations) = parse_rocks(ROCKS).unwrap();
-        println!("{}", iterator_to_string(&rocks_formations, "\n\n"));
+        println!("{}", iterator_to_string(&rocks_formations, "\n"));
     }
 
     #[test]
@@ -237,4 +258,12 @@ mod tests {
         assert_eq!(part01, 3068);
     }
 
+    #[test]
+    fn test02() {
+        let (_, move_instructions) = parse_moves(TEST_INPUT).unwrap();
+        let (_, rocks_formations) = parse_rocks(ROCKS).unwrap();
+
+        let part01 = falling_rocks_height(&rocks_formations, &move_instructions, 1000000000000, false);
+        assert_eq!(part01, 1514285714288);
+    }
 }
