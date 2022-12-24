@@ -1,7 +1,9 @@
-use std::collections::{HashSet, HashMap};
+use std::{collections::{HashSet, HashMap}};
+
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use std::sync::{Arc, Mutex};
 
 const INPUT: &str = advent_of_code::get_input!();
-
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 struct Coord {
     row: i32,
@@ -72,46 +74,54 @@ fn display_elves_positions(elves: &HashSet<Coord>) {
     }
 }
 
-fn compute_proposals(elves: &HashSet<Coord>, checks_direction : &[Direction; 4]) -> HashMap<Coord, Vec<Coord>> {
-    let mut proposals: HashMap<Coord, Vec<Coord>> = HashMap::new();
+fn compute_proposals<'a>(elves: &'a HashSet<Coord>, checks_direction : &'a [Direction; 4]) -> HashMap<Coord, Vec<Coord>> {
+    
+    let proposals: Arc<Mutex<HashMap<Coord, Vec<Coord>>>> = Arc::new(Mutex::new(HashMap::new()));
 
-    // Use rayon here to parallelize the computation
-    for elf in elves {
+    let t = elves.par_iter().filter_map(|elf| {
         let neighbours_positions = elf.neighbours();
         // if all neighbours are empty, skip
         if neighbours_positions.iter().all(|coord| !elves.contains(coord)) {
-            continue;
+            None
+        }else {
+            let neighbours: [bool; 8] = neighbours_positions
+                .iter()
+                .map(|neighbour| elves.contains(neighbour))
+                .collect::<Vec<bool>>()
+                .try_into()
+                .unwrap();
+            
+            // check North, South, East, West using checks_direction order
+            checks_direction.iter().find_map(|direction| {
+                let (row, col) = match direction {
+                    Direction::North => (elf.row - 1, elf.col),
+                    Direction::South => (elf.row + 1, elf.col),
+                    Direction::West => (elf.row, elf.col - 1),
+                    Direction::East => (elf.row, elf.col + 1),
+                };
+
+                let neighbours_empty_in_dir = match direction {
+                    Direction::North => !neighbours[0] && !neighbours[1] && !neighbours[2],
+                    Direction::South => !neighbours[5] && !neighbours[6] && !neighbours[7],
+                    Direction::West => !neighbours[0] && !neighbours[3] && !neighbours[5],
+                    Direction::East => !neighbours[2] && !neighbours[4] && !neighbours[7],
+                };
+
+                if neighbours_empty_in_dir {
+                    Some((elf, Coord { row, col }))
+                }else {
+                    None
+                }
+            })
         }
+    });
 
-        let neighbours: [bool; 8] = neighbours_positions
-            .iter()
-            .map(|neighbour| elves.contains(neighbour))
-            .collect::<Vec<bool>>()
-            .try_into()
-            .unwrap();
-        
-        // check North, South, East, West using checks_direction order
-        for direction in checks_direction.iter() {
-            let (row, col) = match direction {
-                Direction::North => (elf.row - 1, elf.col),
-                Direction::South => (elf.row + 1, elf.col),
-                Direction::West => (elf.row, elf.col - 1),
-                Direction::East => (elf.row, elf.col + 1),
-            };
+    t.for_each(|(elf, coord)| {
+        proposals.lock().unwrap().entry(coord).or_default().push(*elf);
+    });
 
-            let neighbours_empty_in_dir = match direction {
-                Direction::North => !neighbours[0] && !neighbours[1] && !neighbours[2],
-                Direction::South => !neighbours[5] && !neighbours[6] && !neighbours[7],
-                Direction::West => !neighbours[0] && !neighbours[3] && !neighbours[5],
-                Direction::East => !neighbours[2] && !neighbours[4] && !neighbours[7],
-            };
-
-            if neighbours_empty_in_dir {
-                proposals.entry(Coord { row, col }).or_default().push(*elf);
-                break;
-            }
-        }
-    }
+    // How avoid copy here ?
+    let proposals = proposals.lock().unwrap().clone();
     proposals
 }
 
