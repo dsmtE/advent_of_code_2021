@@ -1,16 +1,12 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use nom::{
-    branch::alt,
-    bytes::complete::take_while,
-    character::complete::{self, line_ending, one_of},
+    character::complete::{line_ending, one_of},
     combinator::{map, recognize},
     multi::{many1, separated_list1},
     sequence::pair,
     IResult,
 };
-
-use advent_of_code::iterator_to_string;
 
 const INPUT: &str = advent_of_code::get_input!();
 
@@ -86,11 +82,21 @@ enum Move {
     Right,
 }
 
+impl TryFrom<char> for Move {
+    type Error = ();
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            '<' => Ok(Self::Left),
+            '>' => Ok(Self::Right),
+            _ => Err(()),
+        }
+    }
+}
+
 impl std::fmt::Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
+        write!(f, "{}",
             match self {
                 Move::Left => "<",
                 Move::Right => ">",
@@ -100,10 +106,7 @@ impl std::fmt::Display for Move {
 }
 
 fn parse_moves(input: &str) -> IResult<&str, Vec<Move>> {
-    many1(alt((
-        map(complete::char('>'), |_| Move::Right),
-        map(complete::char('<'), |_| Move::Left),
-    )))(input)
+    many1(map(one_of("><"),|c| Move::try_from(c).unwrap()))(input)
 }
 
 
@@ -135,7 +138,11 @@ impl RocksField {
         }
     }
 
-    fn display(&self, rock: &RockFormation, rock_position: Pos) {
+    fn top(&self, size: usize) -> Vec<u8> {
+        self.rocks.iter().rev().take(size).cloned().collect()
+    }
+
+    fn display(&self, rock: &RockFormation, rock_position: Pos, max: Option<usize>) {
 
         let max_y = std::cmp::max(
             self.height(),
@@ -144,7 +151,7 @@ impl RocksField {
 
         println!("rock pos: ({}, {})", rock_position.0, rock_position.1);
 
-        for y in (0..=max_y).rev() {
+        for y in (0..=max_y).rev().take(max.unwrap_or(max_y+1)) {
             print!("|");
             for x in 0..=6 {
                 print!(
@@ -162,23 +169,88 @@ impl RocksField {
             }
             println!("|");
         }
-        println!("+-------+\n");
+        
+        if let Some(max) = max {
+            println!("... ({} more)\n", max_y - max);
+        }else {
+            println!("+-------+\n");
+        }
     }
 }
 
-
 fn falling_rocks_height(rocks_formations: &[RockFormation], move_instructions: &[Move], rock_limit: usize, verbose: bool) -> usize {
-
     let mut move_index = 0;
     let mut field = RocksField::new();
+    let mut cycle_found = false;
+    let mut cycle_cache: HashMap<(usize, usize, Vec<u8>), (usize, usize)> = HashMap::new();
 
-    // todo: add rocks
-
-    for i in 0..rock_limit {
-        println!("Rock {}", i);
+    let mut skipped_height = 0;
+    let mut i = 0;
+    while i < rock_limit {
+        // println!("Rock {}", i);
         let rock_index: usize = i % rocks_formations.len();
         let rock = &rocks_formations[rock_index];
+        
+        // todo: better key than using last 100 line of the field
+        let key = (rock_index, move_index, field.top(100));
 
+        if !cycle_found {
+            if let Some((cycle_i, cycle_field_height)) = cycle_cache.get(&key) {
+
+                let blocks_passed = i - cycle_i;
+                let pattern_height = field.height() - cycle_field_height;
+                let remaining_blocks = rock_limit - i;
+                let pattern_count = remaining_blocks / blocks_passed;
+                let blocks_to_skip = pattern_count * blocks_passed;
+
+                if blocks_to_skip != 0 {
+
+                    assert_eq!(
+                        blocks_to_skip % 5,
+                        0,
+                        "skipped blocks should be a multiple of 5 to be on the same rock next turn"
+                    );
+                    println!("Cycle detected");
+                    field.display(rock, (2u8, field.height() + 3), Some(20));
+
+                    dbg!(
+                        i,
+                        cycle_i,
+                        field.height(),
+                        cycle_field_height,
+                        move_index,
+                        blocks_passed,
+                        pattern_height,
+                        remaining_blocks,
+                        pattern_count,
+                        blocks_to_skip,
+                    );
+                    
+                    skipped_height += pattern_height * pattern_count;
+                    println!("{} : {}",
+                        i + blocks_to_skip,
+                        rock_limit - remaining_blocks % blocks_passed,
+                    );
+                    i += blocks_to_skip;
+
+                    // move_index = (move_index + 4) % move_instructions.len();
+
+                    dbg!(skipped_height, i);
+                    
+                    cycle_found = true;
+                    continue;
+                }
+                // else {
+                //     println!("No more blocks to skip");
+                // }
+            }
+        }
+
+        cycle_cache.insert(key, (i, field.height()));
+
+        if cycle_found {
+            println!("{}: {:?} {}", i, rock_index, move_index);
+        }
         // use bottom left corner as rock position
         let mut rock_position: Pos = (2u8, field.height() + 3);
 
@@ -194,7 +266,7 @@ fn falling_rocks_height(rocks_formations: &[RockFormation], move_instructions: &
 
             if verbose {
                 println!("Move {} ({})", move_instruction, move_index);
-                field.display(rock, rock_position);
+                field.display(rock, rock_position, Some(20));
             }
             move_index = (move_index + 1) % move_instructions.len();
             
@@ -207,7 +279,7 @@ fn falling_rocks_height(rocks_formations: &[RockFormation], move_instructions: &
                 }
             }
 
-            if verbose {field.display(rock, rock_position);}
+            if verbose {field.display(rock, rock_position, Some(20));}
 
             // do not move down if rock collides with another rock in the field or if it's on the bottom of the field
             if rock_position.1 > 0 && !rock.collide((rock_position.0, rock_position.1 - 1) , &field) {
@@ -218,23 +290,30 @@ fn falling_rocks_height(rocks_formations: &[RockFormation], move_instructions: &
         }
 
         field.add(rock, (rock_position.0, rock_position.1));
+        i += 1;
     }
 
-    field.height()
+    field.height() + skipped_height
 }
 
 fn main() {
     let (_, move_instructions) = parse_moves(INPUT).unwrap();
     let (_, rocks_formations) = parse_rocks(ROCKS).unwrap();
 
-    let result = falling_rocks_height(&rocks_formations, &move_instructions, 2022, false);
+    // let part1 = falling_rocks_height(&rocks_formations, &move_instructions, 2022, false);
 
-    println!("Max height after 2022 rocks: {}", result);
+    // println!("Height after 2022 rocks: {}", part1);
+    // assert_eq!(part1, 3157);
+
+    let part2 = falling_rocks_height(&rocks_formations, &move_instructions, 1000000000000, false);
+
+    println!("Height after 1000000000000 rocks: {}", part2);
+    assert_eq!(part2, 1581449275296);
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use advent_of_code::iterator_to_string;
 
     use super::*;
     const TEST_INPUT: &str = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>";
@@ -263,7 +342,7 @@ mod tests {
         let (_, move_instructions) = parse_moves(TEST_INPUT).unwrap();
         let (_, rocks_formations) = parse_rocks(ROCKS).unwrap();
 
-        let part01 = falling_rocks_height(&rocks_formations, &move_instructions, 1000000000000, false);
-        assert_eq!(part01, 1514285714288);
+        let part02 = falling_rocks_height(&rocks_formations, &move_instructions, 1000000000000, false);
+        assert_eq!(part02, 1514285714288);
     }
 }
