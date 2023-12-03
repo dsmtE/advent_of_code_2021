@@ -1,19 +1,5 @@
-# advent_of_code_2021
+# advent_of_code_2023
 
-```
-   *    *  ()   *   *
-*        * /\         *
-      *   /i\\    *  *
-    *     o/\\  *      *
- *       ///\i\    *
-     *   /*/o\\  *    *
-   *    /i//\*\      *
-        /o/*\\i\   *
-  *    //i//o\\\\     *
-    * /*////\\\\i\*
- *    //o//i\\*\\\   *
-   * /i///*/\\\\\o\   *
-  *    *   ||     *    
-```
+  * ! /^\                                           1 **
 
-Check out https://adventofcode.com/2021.
+Check out https://adventofcode.com/2023.
