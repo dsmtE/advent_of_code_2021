@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-const INPUT: &str = advent_of_code_2023::get_input!();
+const INPUT: &str = aoc_utils::get_input!();
 
 fn parse_input(input: & str) -> Vec<(Vec<u32>, Vec<u32>)>{
     input
@@ -23,7 +23,7 @@ fn main() {
         .count()
     }).collect::<Vec<_>>();
 
-    let points = cards_matching_numbers_count.iter().filter(|&n| *n > 0).map(|n| 2u32.pow(*n as u32 - 1)).sum::<u32>();;
+    let points = cards_matching_numbers_count.iter().filter(|&n| *n > 0).map(|n| 2u32.pow(*n as u32 - 1)).sum::<u32>();
 
     println!("First start: {}", points);
 

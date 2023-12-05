@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-const INPUT: &str = advent_of_code_2023::get_input!();
+const INPUT: &str = aoc_utils::get_input!();
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 struct Part {

@@ -1,5 +1,4 @@
-
-const INPUT: &str = advent_of_code_2023::get_input!();
+const INPUT: &str = aoc_utils::get_input!();
 
 fn to_decimal(c: char) -> Option<u32> {
     let as_number = (c as u32).wrapping_sub('0' as u32);

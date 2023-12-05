@@ -1,0 +1,13 @@
+[package]
+name = "aoc_utils"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+regex = ["dep:regex"]
+
+[dependencies]
+regex = { version = "1.5.4", optional = true}

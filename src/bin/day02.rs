@@ -1,4 +1,4 @@
-const INPUT: &str = advent_of_code_2023::get_input!();
+const INPUT: &str = aoc_utils::get_input!();
 
 const COUNT_SET: Set = Set { blue: 14, green: 13, red: 12 };
 
