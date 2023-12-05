@@ -10,4 +10,5 @@ path = "src/lib.rs"
 regex = ["dep:regex"]
 
 [dependencies]
+aoc_utils_proc_macro = { path = "proc_macro" }
 regex = { version = "1.5.4", optional = true}
