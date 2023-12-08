@@ -2,9 +2,11 @@ use nom::{
     sequence::{preceded, tuple, terminated},
     multi::separated_list1, 
     bytes::complete::{tag, take_until},
-    character::complete::{multispace1, digit1, newline},
-    combinator::{map_res, recognize}, IResult,
+    character::complete::newline,
+    combinator::map_res, IResult,
 };
+
+use aoc_utils::nom_helpers::{number, numbers_list};
 
 use itertools::Itertools;
 use std::collections::VecDeque;
@@ -54,14 +56,8 @@ impl std::fmt::Display for Almanac {
     }
 }
 
-// parse using nom
-
-fn number(input: &str) -> IResult<&str, u64> {
-    map_res(recognize(digit1), str::parse)(input)
-}
-
 fn parse_seeds(input: &str) -> IResult<&str, Vec<u64>> {
-    preceded(tag("seeds: "),  separated_list1(multispace1, number))(input)
+    preceded(tag("seeds: "),  numbers_list)(input)
 }
 
 fn parse_range_mapping_list(input: &str) -> IResult<&str, Vec<RangeMapping>> {

@@ -3,8 +3,10 @@ use nom::{
     multi::separated_list1, 
     bytes::complete::tag,
     character::complete::{multispace1, digit1, newline},
-    combinator::{map_res, recognize, flat_map}, IResult,
+    combinator::map_res, IResult,
 };
+
+use aoc_utils::nom_helpers::numbers_list;
 
 const INPUT: &str = aoc_utils::get_input!();
 
@@ -17,14 +19,6 @@ struct Race {
 fn get_ways_count(race: Race) -> usize {
     // TODO: optim not compute all possibility but only from bounds (as it will follow a triangle of possibility)
     (0..race.time).map(move |i| i * (race.time-i) ).filter(|x| x > &race.distance).count()
-}
-
-fn number<T: std::str::FromStr>(input: &str) -> IResult<&str, T> {
-    map_res(digit1, str::parse::<T>)(input)
-}
-
-fn numbers_list<T: std::str::FromStr>(input: &str) -> IResult<&str, Vec<T>> {
-    separated_list1(multispace1, number::<T>)(input)
 }
 
 fn number_with_whitespace<T: std::str::FromStr>(input: &str) -> IResult<&str, T>

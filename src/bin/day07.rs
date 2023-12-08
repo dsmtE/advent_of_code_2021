@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use itertools::Itertools;
 
+use aoc_utils::nom_helpers::number;
+
 use nom::{
     multi::{many_m_n, separated_list1}, 
     character::complete::{digit1, one_of, newline},
@@ -96,9 +98,7 @@ struct Hand {
     cards_type: [CardType; 5],
 }
 
-fn number<T: std::str::FromStr>(input: &str) -> IResult<&str, T> {
-    map_res(digit1, str::parse::<T>)(input)
-}
+
 
 fn vec_to_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
     v.try_into()
