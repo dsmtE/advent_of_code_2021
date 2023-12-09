@@ -5,7 +5,7 @@ use nom::{
     combinator::map_res,
     multi::{many1, separated_list1},
     sequence::{tuple, preceded, terminated, delimited},
-    character::complete::{alpha1, newline},
+    character::complete::{alphanumeric1, newline},
     bytes::complete::tag,
 };
 
@@ -46,9 +46,9 @@ fn parse_instructions(input: &str) -> IResult<&str, Vec<Instruction>> {
 fn parse_mapping(input: &str) -> IResult<&str, (&str, Mapping)> {
     map_res(
         nom::sequence::tuple((
-            nom::character::complete::alpha1,
-            preceded(tag(" = ("), alpha1),
-            delimited(tag(", "), alpha1, tag(")"))
+            alphanumeric1,
+            preceded(tag(" = ("), alphanumeric1),
+            delimited(tag(", "), alphanumeric1, tag(")"))
         )),
         |(left,right1, right2)| -> Result<(&str, Mapping), ()> { Ok((left, Mapping { left: right1, right: right2 })) }
     )(input)
