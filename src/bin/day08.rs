@@ -65,30 +65,50 @@ fn parse_instructions_and_mapping(input: &str) -> IResult<&str, (Vec<Instruction
 
     let mapping = HashMap::from_iter(mappings.into_iter());
 
-    Ok((input, (instructions, mapping)))
-    
+    Ok((input, (instructions, mapping))) 
+}
+
+fn get_count_to_match_predicate(start: &str, predicate: impl Fn(&str) -> bool, instructions: &Vec<Instruction>, mapping: &HashMap<&str, Mapping>) -> usize {
+    let mut current_value = start;
+    let mut count: usize = 0;
+
+    for instruction in instructions.iter().cycle() {
+        let mapping = mapping.get(&current_value).unwrap();
+        current_value = match instruction {
+            Instruction::Right => mapping.right,
+            Instruction::Left => mapping.left,
+        };
+        count += 1;
+        
+        if predicate(current_value) {
+            break;
+        }
+    }
+
+    count
 }
 
 fn main() {
     let (instructions, mapping) = parse_instructions_and_mapping(INPUT).unwrap().1;
         
-        let mut current_value = "AAA";
-        let mut count: usize = 0;
+    let count: usize = get_count_to_match_predicate("AAA", |value| value == "ZZZ", &instructions, &mapping);
 
-        for instruction in instructions.iter().cycle() {
-            let mapping = mapping.get(&current_value).unwrap();
-            current_value = match instruction {
-                Instruction::Right => mapping.right,
-                Instruction::Left => mapping.left,
-            };
-            count += 1;
-            
-            if current_value == "ZZZ" {
-                break;
-            }
-        }
+    println!("Count: {}", count);
+    
+    // Not fully understand why this works.
+    // But the idea is that we find the number of steps to get from A to Z for each starting value and then find the lcm of all of them.
+    // As I understand it, for a given starting value, a multiple of the number of steps to go from ..A to ..Z shouldn't always end up at ..Z
+    // because a cycle from a starting value might not go back through that value and be shifted and have a shorter cycle size.
+    // But this seems to work in this particular data configuration.
+    let lcm = 
+        mapping.keys().copied()
+        .filter(|key| key.ends_with("A"))
+        .inspect(|x| print!("{} ", x))
+        .map(|x| get_count_to_match_predicate(x, |value| value.ends_with("Z"), &instructions, &mapping))
+        .inspect(|x| print!("{} ", x))
+        .fold(1, |acc, x| num::integer::lcm(acc, x));
 
-        println!("Count: {}", count);
+    println!("lcm: {}", lcm);
 }
 
 #[cfg(test)]
@@ -104,6 +124,17 @@ DDD = (DDD, DDD)
 EEE = (EEE, EEE)
 GGG = (GGG, GGG)
 ZZZ = (ZZZ, ZZZ)";
+
+    const TEST_INPUT2: &str = "LR
+
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)";
 
     #[test]
     fn parsing() {
@@ -130,27 +161,25 @@ ZZZ = (ZZZ, ZZZ)";
     fn first_start() {
         let (instructions, mapping) = parse_instructions_and_mapping(TEST_INPUT).unwrap().1;
         
-        let mut current_value = "AAA";
-        let mut count: usize = 0;
-
-        for instruction in instructions.iter().cycle() {
-            let mapping = mapping.get(&current_value).unwrap();
-            current_value = match instruction {
-                Instruction::Right => mapping.right,
-                Instruction::Left => mapping.left,
-            };
-            count += 1;
-            
-            if current_value == "ZZZ" {
-                break;
-            }
-        }
+        let count: usize = get_count_to_match_predicate("AAA", |value| value == "ZZZ", &instructions, &mapping);
 
         println!("Count: {}", count);
+        assert_eq!(count, 2);
     }
 
     #[test]
     fn second_star() {
+
+        let (instructions, mapping) = parse_instructions_and_mapping(TEST_INPUT2).unwrap().1;
+        
+        let starting_values = mapping.keys().copied().filter(|key| key.ends_with("A"));
+        
+        let counts = starting_values.map(|x| get_count_to_match_predicate(x, |value| value.ends_with("Z"), &instructions, &mapping));
+
+        let lcm = counts.fold(01, |acc, x| num::integer::lcm(acc, x));
+
+        println!("lcm: {}", lcm);
+        assert_eq!(lcm, 6);
     }
 
 }
