@@ -2,12 +2,8 @@ const INPUT: &str = aoc_utils::get_input!();
 
 use num::Integer;
 
-#[derive(Debug, PartialEq, Eq)]
-struct Map <T>{
-    data: Vec<T>,
-    width: usize,
-    height: usize,
-}
+use aoc_utils::{Grid, parse_char_grid};
+
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct Position<T> {
@@ -43,34 +39,6 @@ impl<T> Into<Position<T>> for (T, T) {
     }
 }
 
-
-impl<T, I> std::ops::Index<(I, I)> for Map<T>
-where I: Integer, usize: From<I> {
-    type Output = T;
-
-    fn index(&self, idx: (I, I)) -> &T {
-        // or as appropriate for row- or column-major data       
-        &self.data[usize::from(idx.1) * self.width + usize::from(idx.0)]
-    }
-}
-
-impl<T> std::ops::Index<Position<i64>> for Map<T> {
-    type Output = T;
-
-    fn index(&self, pos: Position<i64>) -> &T {
-        // or as appropriate for row- or column-major data       
-        &self.data[pos.y as usize * self.width + pos.x as usize]
-    }
-}
-
-impl<T> std::ops::Index<usize> for Map<T> {
-    type Output = T;
-
-    fn index(&self, idx: usize) -> &T {
-        &self.data[idx]
-    }
-}
-
 fn get_neigbours_offset(pipe_type: char) -> Vec<(i64, i64)> {
     match pipe_type {
         '|' => vec![(0, -1), (0, 1)],
@@ -84,21 +52,7 @@ fn get_neigbours_offset(pipe_type: char) -> Vec<(i64, i64)> {
     }
 }
 
-fn parse_input(input: &str) -> Map<char> {
-    let width = input.lines().next().unwrap().len();
-    let height = input.lines().count();
-    let map = input.lines().flat_map(|line| line.chars()).collect::<Vec<_>>();
-    return Map { data: map, width, height };
-}
-
-
-fn main() {
-    let map = parse_input(INPUT);
-
-    let starting_position = map.data.iter().enumerate().find(|(_, &c)| c == 'S').map(|(i, _)| Position { x: (i % map.width) as i64, y: (i / map.width) as i64 }).unwrap();
-    println!("{:?}", starting_position);
-
-    //find pipes connected to starting point
+fn starting_point_neigbours_position(starting_position: Position<i64>, map: &Grid<char>) -> Vec<Position<i64>> {
     let mut connected_pipes = Vec::new();
     for (offset_x, offset_y) in vec![( 0i64, -1i64 ), ( 0, 1 ), ( -1, 0 ), ( 1, 0 )] {
         // out of bounds
@@ -111,29 +65,65 @@ fn main() {
 
         let neighbor_position = starting_position + Position { x: offset_x, y: offset_y};
 
-        get_neigbours_offset(map[neighbor_position]).iter().for_each(|&offset| {
+        get_neigbours_offset(map[(neighbor_position.x as usize, neighbor_position.y as usize)]).iter().for_each(|&offset| {
             if (neighbor_position + Position { x: offset.0, y: offset.1 }) == starting_position {
                 connected_pipes.push(neighbor_position);
             }
         });
     }
 
-    let mut previous_position = starting_position;
-    let mut next_position = connected_pipes.first().unwrap().clone();
-    let mut count = 1;
+    connected_pipes
+}
 
-    while(next_position != starting_position) {
-        let bli = get_neigbours_offset(map[next_position])
+fn get_loop_position(starting_position: Position<i64>, map: &Grid<char>) -> Vec<Position<i64>> {
+    let starting_point_neigbours_position = starting_point_neigbours_position(starting_position, &map);
+
+    let mut loop_position = vec![starting_position];
+
+    let mut next_pos = starting_point_neigbours_position.first().unwrap().clone();
+
+    while next_pos != starting_position {
+        let last_pos = loop_position.last().unwrap().clone();
+        let new_pos = get_neigbours_offset(map[(next_pos.x as usize, next_pos.y as usize)])
             .iter()
-            .map(|&offset| next_position + Position { x: offset.0, y: offset.1 })
-            .filter(|&pos| pos != previous_position).next().unwrap();
+            .map(|&offset| next_pos + Position { x: offset.0, y: offset.1 })
+            .filter(|&pos| pos != last_pos).next().unwrap();
 
-        previous_position = next_position;
-        next_position = bli;
-        count += 1;
+        loop_position.push(next_pos);
+        next_pos = new_pos;
     }
+
+    loop_position
+}
+
+fn loop_area(loop_position: &[Position<i64>]) -> isize {
+
+    // Shoelace formula
+    let mut area: isize = 0;
+    for w in loop_position.windows(2) {
+        area += (w[0].y * w[1].x) as isize;
+        area -= (w[0].x * w[1].y) as isize;
+    }
+
+    // last and first closing the loop
+    area += (loop_position.last().unwrap().y * loop_position.first().unwrap().x) as isize;
+    area -= (loop_position.last().unwrap().x * loop_position.first().unwrap().y) as isize;
+
+    isize::abs(area) / 2
+}
+
+fn main() {
+    let map = parse_char_grid(INPUT);
+
+    let starting_position = map.data.iter().enumerate().find(|(_, &c)| c == 'S').map(|(i, _)| Position { x: (i % map.width) as i64, y: (i / map.width) as i64 }).unwrap();
+    let loop_position = get_loop_position(starting_position, &map);
     
-    println!("Part 1: {}", count/2);
+    println!("Part 1: {}", loop_position.len()/2);
+
+    let tiles_count = loop_area(&loop_position) - (loop_position.len()as isize / 2) + 1;
+
+    println!("Part 2: {}", tiles_count);
+
 }
 
 #[cfg(test)]
@@ -148,7 +138,7 @@ LJ...";
 
     #[test]
     fn parsing() {
-        assert_eq!(parse_input(TEST_INPUT), Map {
+        assert_eq!(parse_char_grid(TEST_INPUT), Grid {
             data: "..F7..FJ|.SJ.L7|F--JLJ...".chars().collect::<Vec<_>>(),
             width: 5,
             height: 5,
@@ -158,47 +148,39 @@ LJ...";
     #[test]
     fn first_start() {
 
-        let map = parse_input(TEST_INPUT);
+        let map = parse_char_grid(TEST_INPUT);
 
         let starting_position = map.data.iter().enumerate().find(|(_, &c)| c == 'S').map(|(i, _)| Position { x: (i % map.width) as i64, y: (i / map.width) as i64 }).unwrap();
-        println!("{:?}", starting_position);
+        let loop_position = get_loop_position(starting_position, &map);
 
-        //find pipes connected to starting point
-        let mut connected_pipes = Vec::new();
-        for (offset_x, offset_y) in vec![( 0i64, -1i64 ), ( 0, 1 ), ( -1, 0 ), ( 1, 0 )] {
-            // out of bounds
-            if  starting_position.x as i64 + offset_x < 0 || 
-                starting_position.x as i64 + offset_x >= map.width as i64 ||
-                starting_position.y as i64 + offset_y < 0 ||
-                starting_position.y as i64 + offset_y >= map.height as i64 {
-                continue;
-            }
+        assert_eq!(loop_position.len()/2, 8);
+    }
 
-            let neighbor_position = starting_position + Position { x: offset_x, y: offset_y};
+    #[test]
+    fn second_start() {
 
-            get_neigbours_offset(map[neighbor_position]).iter().for_each(|&offset| {
-                if (neighbor_position + Position { x: offset.0, y: offset.1 }) == starting_position {
-                    connected_pipes.push(neighbor_position);
-                }
-            });
-        }
 
-        let mut previous_position = starting_position;
-        let mut next_position = connected_pipes.first().unwrap().clone();
-        let mut count = 1;
+        const TEST_INPUT_2: &str = ".F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...";
 
-        while(next_position != starting_position) {
-            let bli = get_neigbours_offset(map[next_position])
-                .iter()
-                .map(|&offset| next_position + Position { x: offset.0, y: offset.1 })
-                .filter(|&pos| pos != previous_position).next().unwrap();
+        let map = parse_char_grid(TEST_INPUT_2);
 
-            previous_position = next_position;
-            next_position = bli;
-            count += 1;
-        }
+        let starting_position = map.data.iter().enumerate().find(|(_, &c)| c == 'S').map(|(i, _)| Position { x: (i % map.width) as i64, y: (i / map.width) as i64 }).unwrap();
+        let loop_position = get_loop_position(starting_position, &map);
+
+        //find number of tiles inside
+        let tiles_count = loop_area(&loop_position) - (loop_position.len()as isize / 2) + 1;
+
+        assert_eq!(tiles_count, 8)
         
-        assert_eq!(count/2, 8);
     }
 
 }
