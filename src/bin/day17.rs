@@ -1,13 +1,12 @@
 const INPUT: &str = aoc_utils::get_input!();
 
-use std::collections::{BinaryHeap, HashSet};
-
 use aoc_utils::{
     parse_grid,
     Grid,
     to_decimal,
     Direction,
     cartesian::{p2, Point2, Cartesian2},
+    dijkstra::dijkstra,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -17,29 +16,8 @@ struct CrucibleState {
     moves_in_dir: u8,
 }
 
-struct StateAndCost<T> {
-    state: T,
-    cost: u32,
-}
-
-impl<T> PartialEq for StateAndCost<T> {
-    fn eq(&self, other: &Self) -> bool { self.cost == other.cost }
-}
-
-impl<T> Eq for StateAndCost<T> {}
-
-impl<T> PartialOrd for StateAndCost<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> { Some(self.cmp(other)) }
-}
-
-impl<T> Ord for StateAndCost<T>  {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering { other.cost.cmp(&self.cost) }
-}
-
-fn successors(state_and_cost: &StateAndCost<CrucibleState>, grid: &Grid<u32>, min_straight_line: u8, max_straight_line: u8) -> Vec<StateAndCost<CrucibleState>> {
+fn successors(state: &CrucibleState, grid: &Grid<u32>, min_straight_line: u8, max_straight_line: u8) -> Vec<(CrucibleState, u32)> {
     let (rows, cols) = (grid.height as i64, grid.width as i64);
-
-    let (state, cost) = (state_and_cost.state, state_and_cost.cost);
 
     let mut successors = Vec::new();
     for dir in [
@@ -71,8 +49,6 @@ fn successors(state_and_cost: &StateAndCost<CrucibleState>, grid: &Grid<u32>, mi
             continue;
         }
 
-        let new_cost = cost + grid[(new_pos.x() as usize, new_pos.y() as usize)];
-
         // increment straight_moves if we went straight, else we moved 1 tile in the current direction
         let moves_in_dir = if state.dir == dir {
             state.moves_in_dir + 1
@@ -80,14 +56,14 @@ fn successors(state_and_cost: &StateAndCost<CrucibleState>, grid: &Grid<u32>, mi
             1
         };
         
-        successors.push(StateAndCost {
-            state: CrucibleState {
+        successors.push((
+            CrucibleState {
                 pos: new_pos,
                 dir,
                 moves_in_dir,
             },
-            cost: new_cost,
-        });
+            grid[(new_pos.x() as usize, new_pos.y() as usize)],
+        ));
     }
 
     successors
@@ -99,40 +75,27 @@ fn parse_input(input: &str) -> Grid<u32> {
 }
 
 fn solve_heat_path_cost(heat_loss_grid: &Grid<u32>, min_straight_line: u8, max_straight_line: u8) -> Option<u32>{
-    // Custom dijkstra implementation without path reconstruction
-    let (width, height) = (heat_loss_grid.width, heat_loss_grid.height);
-    let end_pos = p2(width as i64 - 1, height as i64 - 1);
+    let end_pos = p2(heat_loss_grid.width as i64 - 1, heat_loss_grid.height as i64 - 1);
 
-    let mut pq = BinaryHeap::new();
-    let mut seen = HashSet::new();
+    let result = dijkstra(
+        vec![
+            CrucibleState {
+                pos: p2(0, 0),
+                dir: Direction::Right,
+                moves_in_dir: 1,
+            },
+            CrucibleState {
+                pos: p2(0, 0),
+                dir: Direction::Down,
+                moves_in_dir: 1,
+            },
+        ],
+        |state| successors(state, &heat_loss_grid, min_straight_line, max_straight_line),
+        |state| state.pos == end_pos,
+    );
 
-    pq.push(StateAndCost {
-        state: CrucibleState {
-            pos: p2(1, 0),
-            dir: Direction::Right,
-            moves_in_dir: 1,
-        },
-        cost: heat_loss_grid[(1, 0)],
-    });
-
-    pq.push(StateAndCost {
-        state: CrucibleState {
-            pos: p2(0, 1),
-            dir: Direction::Down,
-            moves_in_dir: 1,
-        },
-        cost: heat_loss_grid[(0, 1)],
-    });
-
-    while let Some(StateAndCost { state, cost }) = pq.pop() {
-        if state.pos == end_pos {
-            return Some(cost);
-        }
-        for successor in successors(&StateAndCost { state, cost }, &heat_loss_grid, min_straight_line, max_straight_line) {
-            if seen.insert((successor.state.pos, successor.state.dir, successor.state.moves_in_dir)) {
-                pq.push(successor);
-            }
-        }
+    if let Some((_, cost)) = result {
+        return Some(cost);
     }
     return None;
 }
