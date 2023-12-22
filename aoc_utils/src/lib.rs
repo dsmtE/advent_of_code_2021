@@ -4,6 +4,7 @@ mod regex;
 pub mod iterator_helpers;
 pub mod nom_helpers;
 pub mod cartesian;
+pub mod dijkstra;
 
 pub use aoc_utils_proc_macro::*;
 

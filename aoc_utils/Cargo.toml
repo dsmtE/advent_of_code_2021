@@ -13,3 +13,4 @@ regex = ["dep:regex"]
 aoc_utils_proc_macro = { path = "proc_macro" }
 regex = { version = "1.5.4", optional = true}
 nom = "7.1.1"
+num-traits = "0.2.17"
