@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use num_traits::Zero;
 
 pub fn dijkstra<Node, Cost, FN, IN, FS>(
-    start: &Node,
+    starts: impl IntoIterator<Item = Node>,
     mut successors: FN,
     mut success: FS,
 ) -> Option<(Vec<Node>, Cost)>
@@ -17,7 +17,7 @@ where
     IN: IntoIterator<Item = (Node, Cost)>,
     FS: FnMut(&Node) -> bool,
 {
-    let (parents, reached) = run_dijkstra(start, &mut successors, &mut success);
+    let (parents, reached) = run_dijkstra(starts, &mut successors, &mut success);
     reached.map(|target| {
         (
             reverse_path(&parents, |(p, _)| p.clone(), target.clone()),
@@ -27,7 +27,7 @@ where
 }
 
 fn run_dijkstra<Node, Cost, FN, IN, FS>(
-    start: &Node,
+    starts: impl IntoIterator<Item = Node>,
     successors: &mut FN,
     stop: &mut FS,
 ) -> (HashMap<Node, (Option<Node>, Cost)>, Option<Node>)
@@ -39,13 +39,15 @@ where
     FS: FnMut(&Node) -> bool,
 {
     let mut to_visit = BinaryHeap::new();
-    to_visit.push(SmallestHolder {
-        cost: Zero::zero(),
-        node: start.clone(),
-    });
-    
     let mut parent: HashMap<Node, (Option<Node>, Cost)> = HashMap::default();
-    parent.insert(start.clone(), (None, Zero::zero()));
+    
+    for start in starts {
+        to_visit.push(SmallestHolder {
+            cost: Zero::zero(),
+            node: start.clone(),
+        });
+        parent.insert(start.clone(), (None, Zero::zero()));
+    }
 
     let mut target_reached = None;
 
