@@ -6,7 +6,7 @@ use nom::{
     combinator::map_res, IResult,
 };
 
-use aoc_utils::nom_helpers::numbers_list;
+use aoc_utils::nom_parsing::numbers_list;
 
 const INPUT: &str = aoc_utils::get_input!();
 

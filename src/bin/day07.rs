@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use itertools::Itertools;
 
-use aoc_utils::nom_helpers::number;
+use aoc_utils::nom_parsing::number;
 
 use nom::{
     multi::{many_m_n, separated_list1}, 

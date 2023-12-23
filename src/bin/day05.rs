@@ -6,7 +6,7 @@ use nom::{
     combinator::map_res, IResult,
 };
 
-use aoc_utils::nom_helpers::{number, numbers_list};
+use aoc_utils::nom_parsing::{number, numbers_list};
 
 use itertools::Itertools;
 use std::collections::VecDeque;

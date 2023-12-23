@@ -3,9 +3,8 @@ const INPUT: &str = aoc_utils::get_input!();
 use aoc_utils::{
     parse_grid,
     Grid,
-    to_decimal,
-    Direction,
-    cartesian::{p2, Point2, Cartesian2},
+    parsing::to_decimal,
+    cartesian::{Direction, p2, Point2, Cartesian2},
     dijkstra::dijkstra,
 };
 
