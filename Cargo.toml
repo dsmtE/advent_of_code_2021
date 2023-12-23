@@ -5,12 +5,16 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+aoc_utils = { git = "https://github.com/dsmtE/aoc_utils" }
 nom = "7.1.1"
 rayon = "1.6.0"
 regex = "1.10.2"
-aoc_utils = { path = "aoc_utils" }
 itertools = "0.12.0"
 num = "0.4.1"
+
+# Overriding repository URL to work with git submodules
+[patch."https://github.com/dsmtE/aoc_utils"]
+aoc_utils = { path = "crates/aoc_utils" }
 
 [[bin]]
 name = "day01"
