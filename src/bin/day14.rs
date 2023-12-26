@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use aoc_utils::{index_to_point, in_bound};
+use aoc_utils::{index_to_point, in_bound, hash_cycles};
 
 const INPUT: &str = aoc_utils::get_input!();
 
@@ -11,7 +11,7 @@ enum Tile {
     Empty,
 }
 
-use aoc_utils::{parse_grid, Grid, cartesian::{Direction, Point2}};
+use aoc_utils::{parse_grid, Grid, cartesian::Direction};
 
 fn weight(grid: &Grid<Tile>) -> usize {
     let  (w, h) = (grid.width, grid.height);
@@ -63,13 +63,27 @@ fn main() {
 
     let grid = parse_input(INPUT);
 
-
     {
         let mut grid = grid.clone();
         move_tiles(&mut grid, Direction::Up);
 
         println!("First star: {}", weight(&grid));
     }
+
+    let grid = hash_cycles(
+        grid,
+        |mut grid| {
+            move_tiles(&mut grid, Direction::Up);
+            move_tiles(&mut grid, Direction::Left);
+            move_tiles(&mut grid, Direction::Down);
+            move_tiles(&mut grid, Direction::Right);
+            grid
+        },
+        |grid| grid.data.clone(),
+        1000000000,
+    );
+
+    println!("Second star: {}", weight(&grid));
 }
 
 #[cfg(test)]
@@ -95,5 +109,25 @@ O.#..O.#.#
         move_tiles(&mut grid, Direction::Up);
 
         assert_eq!(weight(&grid), 136);
+    }
+
+    #[test]
+    fn second_start() {
+        let grid = parse_input(TEST_INPUT);
+
+        let grid = hash_cycles(
+            grid,
+            |mut grid| {
+                move_tiles(&mut grid, Direction::Up);
+                move_tiles(&mut grid, Direction::Left);
+                move_tiles(&mut grid, Direction::Down);
+                move_tiles(&mut grid, Direction::Right);
+                grid
+            },
+            |grid| grid.data.clone(),
+            1000000000,
+        );
+
+        assert_eq!(weight(&grid), 64);
     }
 }
