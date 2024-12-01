@@ -1,0 +1,9 @@
+[alias]
+template = "run --release template"
+download = "run --release download"
+read = "run --release read"
+solve = "run --release --quiet solve"
+calendar = "run --release --quiet calendar"
+
+[env]
+AOC_YEAR = "2024"
