@@ -26,6 +26,7 @@ enum AdventOfCodeCommand {
     Read,
     Calendar,
     Download {
+        #[clap(long, short = 'o', action = clap::ArgAction::SetTrue)]
         overwrite: bool,
     },
     Template {
