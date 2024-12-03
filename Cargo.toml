@@ -10,6 +10,7 @@ default-run = "advent_of_code"
 chrono = "0.4.38"
 clap = { version = "4.5.21", features = ["derive"] }
 itertools = "0.13.0"
+nom = "7.1.3"
 
 
 [profile.dev.package."*"]
