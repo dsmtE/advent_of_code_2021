@@ -1,7 +1,5 @@
 advent_of_code::solution!(%DAY_NUMBER%);
 
-const INPUT: &str = advent_of_code::get_input!();
-
 pub fn part_one(input: &str) -> Option<u32> {
     None
 }
@@ -14,15 +12,17 @@ pub fn part_two(input: &str) -> Option<u32> {
 mod tests {
     use super::*;
 
+    const TEST_INPUT: &str = "";
+
     #[test]
     fn test_part_one() {
-        let result = part_one(INPUT);
+        let result = part_one(TEST_INPUT);
         assert_eq!(result, None);
     }
 
     #[test]
     fn test_part_two() {
-        let result = part_two(INPUT);
+        let result = part_two(TEST_INPUT);
         assert_eq!(result, None);
     }
 }
