@@ -1,8 +1,9 @@
+use itertools::Itertools;
+
 advent_of_code::solution!(4);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Position(i32, i32);
-
 
 type Id = i32;
 
@@ -21,7 +22,6 @@ impl std::ops::Mul<i32> for Position {
         Position(self.0 * other, self.1 * other)
     }
 }
-
 
 pub fn parse_input(input: &str) -> ((usize, usize),Vec<char>) {
     // return width and height of the grid and the grid as a vector of chars
@@ -71,7 +71,35 @@ pub fn part_one(input: &str) -> Option<usize> {
 }
 
 pub fn part_two(input: &str) -> Option<usize> {
-    None
+    let ((width, height), grid) = parse_input(input);
+    let width_as_i32 = width as i32;
+    let height_as_i32 = height as i32;
+
+    let mut count: usize = 0;
+    grid.iter().enumerate().filter_map(|(id, &c)| if c == 'A' { Some(id_to_position(id as _, width_as_i32)) } else {None} ).for_each(|a_pos| {
+        // corner positions in clockwise order
+        let corners_positions = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
+            .map(|(x, y)| a_pos + Position(x,y));
+        
+        if corners_positions.iter().any(|p| !p.in_bounds(width_as_i32, height_as_i32)) {
+            return;
+        }
+        
+        let corners_characters = corners_positions
+            .iter()
+            .map(|p| grid[position_to_id(*p, width_as_i32) as usize])
+            .collect::<Vec<char>>();
+
+        for i in 0..4 {
+            if corners_characters.iter().cycle().skip(i).take(4).collect::<String>() == "MMSS" {
+                count += 1;
+                break;
+            }
+        }
+    });
+
+    Some(count)
+    // 1925
 }
 
 #[cfg(test)]
@@ -99,7 +127,7 @@ MXMXAXMASX";
 
     #[test]
     fn test_part_one() {
-        let ((width, height), grid) = parse_input(TEST_INPUT);
+        let ((_, _), grid) = parse_input(TEST_INPUT);
 
         let x_id: Vec<Id> = grid.iter().enumerate().filter_map(|(id, &c)| if c == 'X' { Some(id as Id) } else {None} ).collect();
         assert_eq!(x_id, vec![4, 5, 14, 22, 24, 39, 40, 46, 50, 51, 55, 56, 67, 72, 85, 91, 93, 95, 99]);
@@ -110,7 +138,6 @@ MXMXAXMASX";
 
     #[test]
     fn test_part_two() {
-        let result = part_two(TEST_INPUT);
-        assert_eq!(result, None);
+        assert_eq!(part_one(TEST_INPUT), Some(9));
     }
 }
