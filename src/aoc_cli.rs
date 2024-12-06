@@ -18,13 +18,14 @@ impl std::fmt::Display for AocCommandError {
         match self {
             AocCommandError::CommandNotFound => write!(f, "aoc-cli is not present in environment."),
             AocCommandError::CommandNotCallable => write!(f, "aoc-cli could not be called."),
-            AocCommandError::BadExitStatus(_) => {
-                write!(f, "aoc-cli exited with a non-zero status.")
+            AocCommandError::BadExitStatus(output) => {
+                write!(f, "aoc-cli exited with a non-zero status [{}].", output.status)
             }
         }
     }
 }
 
+#[allow(dead_code)]
 pub fn check() -> Result<(), AocCommandError> {
     std::process::Command::new("aoc")
         .arg("-V")
@@ -115,6 +116,7 @@ fn safe_create_file(path: &str, overwrite: bool) -> Result<File, std::io::Error>
     file.truncate(true).write(true).open(path)
 }
 
+#[allow(dead_code)]
 fn create_file(path: &str) -> Result<File, std::io::Error> {
     std::fs::OpenOptions::new()
         .write(true)
@@ -131,7 +133,6 @@ pub fn template(get_aoc_date: &AocDate, download_input: bool, overwrite: bool) {
 
     let day = get_aoc_date.day;
 
-    let input_path = get_input_path(&day);
     let module_path = get_module_path(&day);
 
     let mut file = match safe_create_file(&module_path, overwrite) {
@@ -156,15 +157,16 @@ pub fn template(get_aoc_date: &AocDate, download_input: bool, overwrite: bool) {
         }
     }
 
-    match create_file(&input_path) {
-        Ok(_) => {
-            println!("Created empty input file \"{}\"", &input_path);
-        }
-        Err(e) => {
-            eprintln!("Failed to create input file: {e}");
-            std::process::exit(1);
-        }
-    }
+    // let input_path = get_input_path(&day);
+    // match create_file(&input_path) {
+    //     Ok(_) => {
+    //         println!("Created empty input file \"{}\"", &input_path);
+    //     }
+    //     Err(e) => {
+    //         eprintln!("Failed to create input file: {e}");
+    //         std::process::exit(1);
+    //     }
+    // }
 
     println!("---");
     println!("🎄 Type `cargo solve {day}` to run your solution.");
