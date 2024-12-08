@@ -12,6 +12,7 @@ chrono = "0.4.38"
 clap = { version = "4.5.21", features = ["derive"] }
 itertools = "0.13.0"
 nom = "7.1.3"
+rayon = "1.10.0"
 
 # Overriding repository URL to work with git submodules
 [patch."https://github.com/dsmtE/aoc_utils"]

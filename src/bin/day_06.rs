@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use aoc_utils::cartesian::{p2, Point2, Direction, Cartesian2};
+use rayon::iter::{ParallelIterator, IntoParallelIterator};
 
 advent_of_code::solution!(6);
 
@@ -44,9 +45,9 @@ fn parse_input(input: &str) -> (Robot, HashSet<Point2>, Point2) {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let (mut robot, obstacles, grid_size) = parse_input(input);
+    let (robot, obstacles, grid_size) = parse_input(input);
     let mut visited_positions = HashSet::new();
-    let move_result = process_move(&mut robot, &obstacles, &grid_size, 
+    let move_result = process_move(robot, &obstacles, None, &grid_size, 
         |pos| {
             visited_positions.insert(pos);
         });
@@ -58,7 +59,23 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let (robot, obstacles, grid_size) = parse_input(input);
+    let mut visited_positions = HashSet::new();
+    process_move(robot.clone(), &obstacles, None, &grid_size, 
+        |pos| {
+            visited_positions.insert(pos);
+        });
+
+        visited_positions.remove(&robot.pos);
+    
+    println!("There are {} visited positions", visited_positions.len());
+    let loop_count = visited_positions.into_par_iter()
+        .filter(|visited_pos| {
+            let move_result = process_move(robot.clone(), &obstacles, Some(visited_pos),&grid_size, |_| {});
+            return move_result == MoveResult::LoopDetected;
+        }).count();
+
+    Some(loop_count as _)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -67,10 +84,10 @@ enum MoveResult {
     LoopDetected,
 }
 
-fn process_move(robot: &mut Robot, obstacles: &HashSet<Point2>, size: &Point2, mut pos_callback: impl FnMut(Point2)) -> MoveResult {
+fn process_move(mut robot: Robot, obstacles: &HashSet<Point2>, additional_obstacle: Option<&Point2> , size: &Point2, mut pos_callback: impl FnMut(Point2)) -> MoveResult {
     let mut visited_robot_state: HashSet<Robot> = HashSet::new();
     
-    visited_robot_state.insert(*robot);
+    visited_robot_state.insert(robot);
     pos_callback(robot.pos);
     loop {
         let next_pos = robot.next_pos();
@@ -81,7 +98,7 @@ fn process_move(robot: &mut Robot, obstacles: &HashSet<Point2>, size: &Point2, m
         else if  visited_robot_state.contains(&Robot { pos: next_pos, direction: robot.direction }) {
             return MoveResult::LoopDetected;
         }
-        else if obstacles.contains(&next_pos) {
+        else if obstacles.contains(&next_pos) || additional_obstacle.map_or(false, |pos| pos == &next_pos) {
             robot.direction = robot.direction.turn_right();
         }
         else
@@ -91,7 +108,7 @@ fn process_move(robot: &mut Robot, obstacles: &HashSet<Point2>, size: &Point2, m
 
         // println!("{:?}", robot);
         pos_callback(robot.pos);
-        visited_robot_state.insert(*robot);
+        visited_robot_state.insert(robot);
     }
 }
 
@@ -125,7 +142,7 @@ mod tests {
         let (robot, obstacles, grid_size) = parse_input(TEST_INPUT);
         
         let mut visited_positions = HashSet::new();
-        let move_result = process_move(&mut robot.clone(), &obstacles, &grid_size, 
+        let move_result = process_move(robot, &obstacles, None, &grid_size, 
             |pos| {
                 visited_positions.insert(pos);
             });
@@ -136,7 +153,6 @@ mod tests {
 
     #[test]
     fn test_part_two() {
-        let result = part_two(TEST_INPUT);
-        assert_eq!(result, None);
+        assert_eq!(part_two(TEST_INPUT), Some(6));
     }
 }
