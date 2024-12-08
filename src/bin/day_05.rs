@@ -1,6 +1,6 @@
 advent_of_code::solution!(5);
 
-use nom::{bytes::complete::tag, character::complete::digit1, combinator::{map_res, recognize}, multi::{many0, many1, separated_list0, separated_list1}, sequence::{delimited, separated_pair, terminated, tuple}, IResult};
+use nom::{bytes::complete::tag, character::complete::digit1, combinator::{map_res, recognize}, multi::separated_list1, sequence::separated_pair, IResult};
 
 type OrderingRule = (u32, u32);
 
@@ -33,7 +33,7 @@ pub fn build_preceding_rules_hash_map(rules: &Vec<OrderingRule>) -> std::collect
     hash_map
 }
 
-pub fn is_pages_valid(pages: &Vec<u32>, hash_map: &std::collections::HashMap<u32, Vec<u32>>) -> bool {
+pub fn is_pages_valid(pages: &[u32], hash_map: &std::collections::HashMap<u32, Vec<u32>>) -> bool {
     pages.iter().enumerate().all(|(i, page)| {
         // if this page number isn't in the hash map, then it's valid
         //  else check if all the next pages are not in the preceding pages rules 
@@ -47,7 +47,7 @@ pub fn is_pages_valid(pages: &Vec<u32>, hash_map: &std::collections::HashMap<u32
     })
 }
 
-pub fn reorder_pages(pages: &mut Vec<u32>, hash_map: &std::collections::HashMap<u32, Vec<u32>>) {
+pub fn reorder_pages(pages: &mut [u32], hash_map: &std::collections::HashMap<u32, Vec<u32>>) {
     let mut i = 0;
     while i < pages.len() {
         //swap the current page with the next page if the next page is in the preceding pages rules

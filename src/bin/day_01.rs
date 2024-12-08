@@ -1,7 +1,5 @@
 advent_of_code::solution!(1);
 
-const INPUT: &str = advent_of_code::get_input!();
-
 fn parse_input(input: &str) -> (Vec<i32>, Vec<i32>) {
     let mut v1 = Vec::new();
     let mut v2 = Vec::new();
@@ -24,7 +22,7 @@ pub fn part_one(input: &str) -> Option<i32> {
 }
 
 pub fn part_two(input: &str) -> Option<i32> {
-    let (mut v1, mut v2) = parse_input(input);
+    let (v1, v2) = parse_input(input);
 
     // build map of frequencies for v2
     let mut freqs = std::collections::HashMap::new();

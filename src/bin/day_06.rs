@@ -61,7 +61,7 @@ pub fn part_one(input: &str) -> Option<u32> {
 pub fn part_two(input: &str) -> Option<u32> {
     let (robot, obstacles, grid_size) = parse_input(input);
     let mut visited_positions = HashSet::new();
-    process_move(robot.clone(), &obstacles, None, &grid_size, 
+    process_move(robot, &obstacles, None, &grid_size, 
         |pos| {
             visited_positions.insert(pos);
         });
@@ -71,8 +71,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     println!("There are {} visited positions", visited_positions.len());
     let loop_count = visited_positions.into_par_iter()
         .filter(|visited_pos| {
-            let move_result = process_move(robot.clone(), &obstacles, Some(visited_pos),&grid_size, |_| {});
-            return move_result == MoveResult::LoopDetected;
+            process_move(robot, &obstacles, Some(visited_pos),&grid_size, |_| {}) == MoveResult::LoopDetected
         }).count();
 
     Some(loop_count as _)

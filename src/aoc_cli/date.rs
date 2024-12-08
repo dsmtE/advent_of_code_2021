@@ -27,7 +27,7 @@ impl std::str::FromStr for Day {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let day = s.parse().map_err(|_| "Failed to parse day")?;
-        if day < 1 || day > 25 {
+        if !(1..=25).contains(&day) {
             return Err("Day must be between 1 and 25");
         }
         Ok(Day(day))

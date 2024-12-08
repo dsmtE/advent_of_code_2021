@@ -10,10 +10,10 @@ fn parse_input(input: &str) -> Vec<Vec<i32>> {
 }
 
 pub fn is_valid_level_diff(x: &i32) -> bool {
-    return x.abs() >= 1 && x.abs() <= 3
+    x.abs() >= 1 && x.abs() <= 3
 }
 
-pub fn is_level_valid_part_one(level: &Vec<i32>) -> bool {
+pub fn is_level_valid_part_one(level: &[i32]) -> bool {
     // Get the difference between each level
     let diff: Vec<i32> = level.windows(2).map(|x| x[1] - x[0]).collect();
 
@@ -30,11 +30,11 @@ pub fn is_level_valid_part_one(level: &Vec<i32>) -> bool {
     true
 }
 
-pub fn is_level_valid_part_two(level: &Vec<i32>) -> bool {
+pub fn is_level_valid_part_two(level: &[i32]) -> bool {
     // brute force solution using combinations on every subset of the level
     level.iter()
         .combinations(level.len() - 1)
-        .any(|l| is_level_valid_part_one(&l.into_iter().map(|x| *x).collect()))
+        .any(|l| is_level_valid_part_one(&l.into_iter().copied().collect::<Vec<_>>()))
 
     // todo better iterative solution 
 }

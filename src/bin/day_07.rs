@@ -67,7 +67,7 @@ pub fn apply_operator_to_numbers(operators: &[Operator], numbers: &[i64]) -> i64
     assert_eq!(operators.len(), numbers.len()-1);
     let mut result = numbers[0];
     // could be better using simple heuristic and stop if the result is already bigger than the expected result
-    for (number, op) in numbers.into_iter().skip(1).zip(operators.iter()) {
+    for (number, op) in numbers.iter().skip(1).zip(operators.iter()) {
         result = evaluate_with_operator(op, result, *number);
     }
     result
@@ -97,7 +97,7 @@ pub fn equation_is_possible(operation: &Equation, operators_to_use: Vec<Operator
     }
 
     operators_combinations.par_iter().any(|operators_combination| {
-        apply_operator_to_numbers(&operators_combination, &operation.numbers) == operation.expected_result
+        apply_operator_to_numbers(operators_combination, &operation.numbers) == operation.expected_result
     })
 }
 

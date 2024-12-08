@@ -126,7 +126,7 @@ fn create_file(path: &str) -> Result<File, std::io::Error> {
 
 pub fn template(get_aoc_date: &AocDate, download_input: bool, overwrite: bool) {
     if download_input {
-        download(&get_aoc_date, overwrite).unwrap();
+        download(get_aoc_date, overwrite).unwrap();
     }
 
     let day = get_aoc_date.day;
