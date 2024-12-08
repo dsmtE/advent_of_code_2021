@@ -1,10 +1,9 @@
-use crate::aoc_date::AocDate;
-use crate::path::{get_input_path, get_module_name, get_module_path};
+use crate::aoc_cli::{
+    date::AocDate,
+    path::{get_input_path, get_module_name, get_module_path}
+};
 
-use std::fs::File;
-use std::io::Write;
-use std::process::Output;
-use std::vec;
+use std::{fs::File, io::Write, process::Output};
 
 #[derive(Debug)]
 pub enum AocCommandError {
@@ -126,9 +125,8 @@ fn create_file(path: &str) -> Result<File, std::io::Error> {
 }
 
 pub fn template(get_aoc_date: &AocDate, download_input: bool, overwrite: bool) {
-    // todo: handle download_input
     if download_input {
-        println!("Not implemented yet.");
+        download(&get_aoc_date, overwrite).unwrap();
     }
 
     let day = get_aoc_date.day;
@@ -156,17 +154,6 @@ pub fn template(get_aoc_date: &AocDate, download_input: bool, overwrite: bool) {
             std::process::exit(1);
         }
     }
-
-    // let input_path = get_input_path(&day);
-    // match create_file(&input_path) {
-    //     Ok(_) => {
-    //         println!("Created empty input file \"{}\"", &input_path);
-    //     }
-    //     Err(e) => {
-    //         eprintln!("Failed to create input file: {e}");
-    //         std::process::exit(1);
-    //     }
-    // }
 
     println!("---");
     println!("🎄 Type `cargo solve {day}` to run your solution.");

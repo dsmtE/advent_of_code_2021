@@ -1,9 +1,7 @@
 use clap::Parser;
 
-mod aoc_date;
 mod aoc_cli;
-mod path;
-use aoc_date::{AocDate, Day};
+use aoc_cli::date::{AocDate, Day};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -30,13 +28,16 @@ enum AdventOfCodeCommand {
         overwrite: bool,
     },
     Template {
-        download_input: Option<bool>,
-        overwrite: Option<bool>,
+        #[clap(long, short = 'd', action = clap::ArgAction::SetTrue)]
+        download_input: bool,
+        #[clap(long, short = 'o', action = clap::ArgAction::SetTrue)]
+        overwrite: bool,
     },
     Solve {
         // part: u8,
         // submit_part: Option<u8>,
-        release: Option<bool>,
+        #[clap(long, short = 'r', action = clap::ArgAction::SetTrue)]
+        release: bool,
     }
 }
 
@@ -58,10 +59,10 @@ fn main() {
             aoc_cli::calendar(&args.get_aoc_date()).unwrap();
         },
         AdventOfCodeCommand::Template { download_input, overwrite} => {
-            aoc_cli::template(&args.get_aoc_date(), download_input.unwrap_or(false), overwrite.unwrap_or(false));
+            aoc_cli::template(&args.get_aoc_date(), download_input, overwrite);
         },
         AdventOfCodeCommand::Solve { release } => {
-            aoc_cli::solve(&args.get_aoc_date(), release.unwrap_or(false));
+            aoc_cli::solve(&args.get_aoc_date(), release);
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::aoc_date::Day;
+use crate::aoc_cli::date::Day;
 
 pub fn get_module_name(day: &Day) -> String {
     format!("day_{day}")

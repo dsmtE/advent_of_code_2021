@@ -1,5 +1,4 @@
-pub mod runner;
-
+pub mod aoc_cli;
 #[macro_export]
 macro_rules! get_input { () => (
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/inputs/", env!("CARGO_BIN_NAME"), ".txt"))
@@ -20,7 +19,7 @@ macro_rules! solution {
 
     (@impl $day:expr, $( [$func:expr, $part:expr] )*) => {
         fn main() {
-            use $crate::runner::*;
+            use $crate::aoc_cli::runner::*;
             let input = $crate::get_input!();
             $( run_part($func, &input, $part); )*
         }
