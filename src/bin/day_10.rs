@@ -1,6 +1,9 @@
 advent_of_code::solution!(10);
 
-use aoc_utils::{cartesian::{Point2, Vector2}, parse_grid, Grid};
+use aoc_utils::{
+    cartesian::{Point2, Vector2},
+    grid::{parse_grid, Grid}
+};
 
 use pathfinding::prelude::bfs_reach;
 

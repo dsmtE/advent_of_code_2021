@@ -2,6 +2,7 @@ use itertools::Itertools;
 use nom::{bytes::complete::tag, character::complete::newline, multi::separated_list1, sequence::separated_pair, IResult};
 
 use aoc_utils::nom_parsing::number;
+use aoc_utils::num::integer::digits_count;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 advent_of_code::solution!(7);
@@ -46,20 +47,11 @@ impl std::fmt::Debug for Operator {
     }
 }
 
-pub fn number_of_digits(mut number: i64) -> usize {
-    let mut count = 0;
-    while number > 0 {
-        number /= 10;
-        count += 1;
-    }
-    count
-}
-
 pub fn evaluate_with_operator(operator: &Operator, a: i64, b: i64) -> i64 {
     match operator {
         Operator::Add => a + b,
         Operator::Mul => a * b,
-        Operator::Concat => a * 10_i64.pow(number_of_digits(b) as _) as i64 + b
+        Operator::Concat => a * 10_i64.pow(digits_count(&b) as _) as i64 + b
     }
 }
 

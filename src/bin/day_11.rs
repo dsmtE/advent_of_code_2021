@@ -2,14 +2,14 @@ advent_of_code::solution!(11);
 
 use std::collections::HashMap;
 
-use aoc_utils::number_of_digits;
+use aoc_utils::num::integer::digits_count;
 
 fn parse_input(input: &str) -> Vec<u64> {
     input.split_whitespace().map(|s| s.parse().unwrap()).collect()
 }
 
 fn split_digits_in_half(n: u64) -> Option<(u64, u64)> {
-    let nb_of_digits = number_of_digits(&n);
+    let nb_of_digits = digits_count(&n);
 
     if nb_of_digits % 2 == 0 {
         let base_10_split = 10u64.pow((nb_of_digits/2) as _);
@@ -60,7 +60,7 @@ fn blink_stone(stone: &u64) -> Vec<u64> {
     if *stone == 0 {
         return vec![1];
     }
-    let nb_of_digits = number_of_digits(stone);
+    let nb_of_digits = digits_count(stone);
 
     if nb_of_digits % 2 == 0 {
         let base_10_split = 10u64.pow((nb_of_digits/2) as _);

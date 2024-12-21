@@ -2,7 +2,10 @@ advent_of_code::solution!(12);
 
 use std::collections::HashSet;
 
-use aoc_utils::{cartesian::{p2, Point2, Vector2, Cartesian2}, parse_char_grid, Grid};
+use aoc_utils::{
+    cartesian::{p2, Point2, Vector2, Cartesian2},
+    grid::{parse_char_grid, Grid}
+};
 
 pub fn parse_input(input: &str) -> Grid<char> {
     parse_char_grid(input)
