@@ -22,7 +22,12 @@ impl AdventOfCodeArgs {
 #[derive(clap::Subcommand, Debug, Clone)]
 enum AdventOfCodeCommand {
     Read,
-    Calendar,
+    Calendar {
+        #[clap(long, short = 'e', action = clap::ArgAction::SetTrue)]
+        edit_readme: bool,
+        #[clap(long, short = 'd')]
+        day: Option<Day>,
+    },
     Download {
         #[clap(long, short = 'o', action = clap::ArgAction::SetTrue)]
         overwrite: bool,
@@ -55,8 +60,8 @@ fn main() {
         AdventOfCodeCommand::Download { overwrite } => {
             aoc_cli::download(&args.get_aoc_date(), overwrite).unwrap();
         },
-        AdventOfCodeCommand::Calendar => {
-            aoc_cli::calendar(&args.get_aoc_date()).unwrap();
+        AdventOfCodeCommand::Calendar {edit_readme, day} => {
+            aoc_cli::calendar(&args.get_aoc_date(), edit_readme, day).unwrap();
         },
         AdventOfCodeCommand::Template { download_input, overwrite} => {
             aoc_cli::template(&args.get_aoc_date(), download_input, overwrite);

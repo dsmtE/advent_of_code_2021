@@ -5,7 +5,9 @@ use crate::aoc_cli::{
 
 use std::{fs::File, io::Write, process::Output};
 
-#[derive(Debug)]
+use super::date::Day;
+
+#[derive(Debug, Clone)]
 pub enum AocCommandError {
     CommandNotFound,
     CommandNotCallable,
@@ -33,11 +35,12 @@ pub fn check() -> Result<(), AocCommandError> {
     Ok(())
 }
 
-fn call_aoc_cli(args: &[String]) -> Result<Output, AocCommandError> {
+fn call_aoc_cli(args: &[String], piped_out: bool) -> Result<Output, AocCommandError> {
+    use std::process::Stdio;
     let output = std::process::Command::new("aoc")
         .args(args)
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(if piped_out { Stdio::piped() } else { Stdio::inherit() })
+        .stderr(Stdio::inherit())
         .output()
         .map_err(|_| AocCommandError::CommandNotCallable)?;
 
@@ -69,15 +72,50 @@ pub fn read(aoc_date: &AocDate) -> Result<Output, AocCommandError> {
         puzzle_path.to_string_lossy().to_string(),
     ]);
 
-    call_aoc_cli(&args)
+    call_aoc_cli(&args, false)
 }
 
-pub fn calendar(aoc_date: &AocDate) -> Result<Output, AocCommandError> {
-    call_aoc_cli(&[
+pub fn calendar(aoc_date: &AocDate, edit_readme: bool, day: Option<Day>) -> Result<Output, AocCommandError> {
+    let output = call_aoc_cli(&[
         "calendar".into(),
         "--year".into(),
         aoc_date.year.to_string(),
-    ])
+    ], edit_readme);
+
+    if edit_readme {
+        let calendar_output = String::from_utf8(output.clone().unwrap().stdout).unwrap();
+        let calendar_output_lines = calendar_output.lines().skip(1).collect::<Vec<_>>();
+
+        println!("calendar output:\n{}", calendar_output_lines.join("\n"));
+
+        println!("🎄 Updating README.md with new calendar...");
+
+        let readme_path = std::path::PathBuf::from("README.md");
+        let readme_string = std::fs::read_to_string(&readme_path).unwrap();
+
+        let calendar_marker = "title=\"calendar\"";
+        let calendar_start = readme_string.lines().position(|line| line.contains(calendar_marker)).unwrap() + 1;
+
+        //replace the lines in readme_string between the calendar start and end with the new calendar output
+        let new_calendar = readme_string.lines().enumerate()
+            .map(|(i, line)| {
+                if i < calendar_start || i >= calendar_start + 26 {
+                    return line;
+                }
+
+                if day.map_or(true, |d|  d.into_inner() as usize == (i - calendar_start)) {
+                    return calendar_output_lines[i - calendar_start]
+                }
+                line
+            }).collect::<Vec<_>>().join("\n");
+
+        // save to file
+        std::fs::write(&readme_path, new_calendar).unwrap();
+        
+        println!("🎄 Successfully updated README.md.");
+    }
+
+    output
 }
 
 pub fn download(aoc_date: &AocDate, overwrite: bool) -> Result<Output, AocCommandError> {
@@ -97,7 +135,7 @@ pub fn download(aoc_date: &AocDate, overwrite: bool) -> Result<Output, AocComman
 
     args.push("download".into());
 
-    let output = call_aoc_cli(&args)?;
+    let output = call_aoc_cli(&args, false)?;
     println!("🎄 Successfully wrote input to \"{}\".", &input_path);
 
     Ok(output)
